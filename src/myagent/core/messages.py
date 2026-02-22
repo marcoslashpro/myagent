@@ -1,5 +1,7 @@
-from dataclasses import asdict, dataclass
-from typing import Literal
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
+from typing import Any, Literal
 
 
 @dataclass(slots=True)
@@ -20,8 +22,7 @@ class SystemMessage:
     role: Literal["system"] = "system"
 
 
-Message = SystemMessage | AssistantMessage | UserMessage
-
-
 def from_messages_to_dict(messages: list[Message]) -> list[dict]:
     return [asdict(m) for m in messages]
+
+Message = SystemMessage | AssistantMessage | UserMessage 
