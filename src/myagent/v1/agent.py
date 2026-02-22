@@ -4,6 +4,7 @@ from typing import Literal
 
 import docker
 
+from myagent.v1.actions import AssistantOutput
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.llm import LLM
 from myagent.v1.messages import (
@@ -81,37 +82,6 @@ class Agent:
                 raise ToolError(str(e), to_exec.name) from e
 
         return results
-
-
-@dataclass(slots=True)
-class ThinkAction:
-    content: str
-    type: Literal["think"] = "think"
-
-
-@dataclass(slots=True)
-class CodeAction:
-    content: str
-    type: Literal["code"]
-
-
-@dataclass(slots=True)
-class FinalAction:
-    content: str
-    type: Literal["final_answer"] = "final_answer"
-
-
-@dataclass(slots=True)
-class Observation:
-    content: str
-    type: Literal["oservation"]
-
-
-@dataclass(slots=True)
-class AssistantOutput:
-    final_answer: str | None = field(default=None)
-    think: str | None = field(default=None)
-    code: str | None = field(default=None)
 
 
 def extract_all_blocks(prompt: str) -> AssistantOutput:
