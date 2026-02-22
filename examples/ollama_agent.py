@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from ollama import chat
+from rich.console import Console
+from rich.markdown import Markdown
 
 from myagent.v1.errors import ModelError, ModelResponseError
 from myagent.v1.agent import Agent, Context
@@ -32,5 +34,16 @@ class OllamaLLM:
         return AssistantMessage(content=content)
 
 
-ollama_agent = Agent(OllamaLLM("ministral-3:8b"))
-ollama_agent.run("What files are in your current dir?")
+if __name__ == "__main__":
+    model_name = "ministral-3:8b"
+
+    console = Console()
+
+    console.print(f"[INFO] - Initializing {model_name}")
+    ollama_agent = Agent(OllamaLLM(model_name))
+
+    console.print(f"[INFO] - Success. Press Ctrl + C to quit at any time.")
+
+    while True:
+        console.print(Markdown("**You**"))
+        ollama_agent.run(input("- "))

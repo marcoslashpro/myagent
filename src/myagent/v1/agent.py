@@ -52,10 +52,18 @@ class Agent:
             # )
             res = self.llm.run(self._messages)
 
-            console.log(Markdown(f"[DEBUG] - Extracting blocks from: {res.content}"))
+            # console.log(f"[DEBUG] - Extracting blocks from: {res.content}")
             output = extract_all_blocks(res.content)
 
-            console.log(Markdown(f"[DEBUG] - **Extracted blocks**: {output}\n\n"))
+            console.print(
+                Markdown(
+                    f"""
+\n**Agent**
+- Action: {'Code\n' if output.code else 'Think\n' if output.think else 'Final Answer\n' if output.final_answer else "Invalid" }
+- Content: {output.code or output.final_answer or output.think or "Invalid"}
+"""
+                )
+            )
 
             match output:
                 case AssistantOutput(think=None, code=None, final_answer=None):
@@ -75,7 +83,7 @@ class Agent:
                         self._messages.append(AssistantMessage(code))
 
                         observation = run_in_container(code)
-                        console.log(f"Generated observtion: {observation}")
+                        console.print(Markdown(f"\n**Environment**\n- {observation}"))
 
                         self._messages.append(UserMessage(content=observation))
 
@@ -135,4 +143,4 @@ def run_in_container(code: str) -> str:
         stdout=True,
         stderr=True,
     )
-    return f"```observation\n{output.decode()}\n```"
+    return output.decode()
