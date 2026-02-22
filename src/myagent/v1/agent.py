@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 
 import docker
+import docker.errors
 
 from myagent.v1.actions import AssistantOutput
 from myagent.v1.errors import ModelError, ToolError
@@ -136,11 +137,15 @@ def extract_all_blocks(prompt: str) -> AssistantOutput:
 
 def run_in_container(code: str) -> str:
     client = docker.from_env()
-    output = client.containers.run(
-        "python:3.12-slim",
-        command=code.split(),
-        auto_remove=True,
-        stdout=True,
-        stderr=True,
-    )
+    try:
+        output = client.containers.run(
+            "python:3.12-slim",
+            command=code.split(),
+            auto_remove=True,
+            stdout=True,
+            stderr=True,
+        )
+    except docker.errors.APIError as e:
+        return str(e)
+
     return output.decode()
