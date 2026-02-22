@@ -32,12 +32,5 @@ class OllamaLLM:
         return AssistantMessage(content=content)
 
 
-ctx = Context(
-    system_prompt=(
-        Path(__file__).parent / "assets/docker_agent_sys_prompt.txt"
-    ).read_text()
-)
-
-
-ollama_agent = Agent(OllamaLLM("ministral-3:8b"), ctx)
+ollama_agent = Agent(OllamaLLM("ministral-3:8b"))
 ollama_agent.run("What files are in your current dir?")

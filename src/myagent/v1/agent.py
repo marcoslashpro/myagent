@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 import re
 
 import docker
@@ -30,24 +31,28 @@ class Context:
 
 
 class Agent:
+    _sys_prompt_path = Path(__file__).parent.parent / "prompts/docker_agent_sys.txt"
+
     def __init__(self, llm: LLM, ctx: Context | None = None):
         self.ctx = ctx
-        self._messages: list[Message] = (
-            [SystemMessage(content=ctx.system_prompt)] if ctx else []
-        )
+        self._messages: list[Message] = [self._generate_sys_prompt()]
         self.llm = llm
+
+    @classmethod
+    def _generate_sys_prompt(cls):
+        return SystemMessage(content=cls._sys_prompt_path.read_text())
 
     def run(self, prompt: str):
         self._messages.append(UserMessage(content=prompt))
 
         while True:
-            console.log(
-                "[DEBUG] - Calling model with messages:\n"
-                f"{"\n\n".join([str(msg) for msg in self._messages])}"
-            )
+            # console.log(
+            #     "[DEBUG] - Calling model with messages:\n"
+            #     f"{"\n\n".join([str(msg) for msg in self._messages])}"
+            # )
             res = self.llm.run(self._messages)
 
-            console.log(f"[DEBUG] - Extracting blocks from: {res.content}")
+            console.log(Markdown(f"[DEBUG] - Extracting blocks from: {res.content}"))
             output = extract_all_blocks(res.content)
 
             console.log(Markdown(f"[DEBUG] - **Extracted blocks**: {output}\n\n"))
