@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 import re
-from typing import Literal
 
 import docker
 
@@ -16,11 +15,18 @@ from myagent.v1.messages import (
 from myagent.core.messages import Message, SystemMessage
 from myagent.v1.tools import Tool
 
+from rich.console import Console
+from rich.markdown import Markdown
+
+
+console = Console()
+
 
 @dataclass(slots=True)
 class Context:
     system_prompt: str = field(default_factory=str)
     tools: list[Tool] = field(default_factory=list)
+    mounts: list[str] = field(default_factory=list)
 
 
 class Agent:
@@ -35,27 +41,38 @@ class Agent:
         self._messages.append(UserMessage(content=prompt))
 
         while True:
+            console.log(
+                "[DEBUG] - Calling model with messages:\n"
+                f"{"\n\n".join([str(msg) for msg in self._messages])}"
+            )
             res = self.llm.run(self._messages)
 
+            console.log(f"[DEBUG] - Extracting blocks from: {res.content}")
             output = extract_all_blocks(res.content)
 
-            print(f"[DEBUG] - Extracted blocks: {output}\n")
+            console.log(Markdown(f"[DEBUG] - **Extracted blocks**: {output}\n\n"))
 
-            if output.code:
-                self._messages.append(AssistantMessage(output.code))
-                observation = run_in_container(output.code)
-                self._messages.append(UserMessage(content=observation))
-            elif output.think:
-                self._messages.append(AssistantMessage(content=output.think))
-            elif output.final_answer:
-                self._messages.append(AssistantMessage(content=output.final_answer))
-                return
-            else:
-                self._messages.append(
-                    UserMessage(
-                        content="Invalid response content, please remember to wrap your answer is the specific block that it belongs to"
+            match output:
+                case AssistantOutput(think=None, code=None, final_answer=None):
+                    self._messages.append(
+                        UserMessage(
+                            content="Invalid response content, please remember to wrap your answer is the specific block that it belongs to"
+                        )
                     )
-                )
+                    continue
+                case AssistantOutput(think=think, code=code, final_answer=final_answer):
+                    if final_answer:
+                        self._messages.append(AssistantMessage(content=final_answer))
+                        return
+                    if think:
+                        self._messages.append(AssistantMessage(content=think))
+                    if code:
+                        self._messages.append(AssistantMessage(code))
+
+                        observation = run_in_container(code)
+                        console.log(f"Generated observtion: {observation}")
+
+                        self._messages.append(UserMessage(content=observation))
 
     @staticmethod
     def _create_tool_mapping(tools: list[Tool]) -> dict[str, Tool]:

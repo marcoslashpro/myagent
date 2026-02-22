@@ -21,10 +21,6 @@ class OllamaLLM:
 
         messages_dict = from_messages_to_dict(messages)
 
-        print(
-            f"[DEBUG] - Calling model with messages: {"\n\n".join([str(msg) for msg in messages_dict])}\n"
-        )
-
         res = chat(
             messages=messages_dict,
             model=model or self.model,
@@ -33,7 +29,6 @@ class OllamaLLM:
         if not (content := res.message.content):
             raise ModelResponseError("Missing content from the response")
 
-        print(f"[DEBUG] - Model Response: {content}\n")
         return AssistantMessage(content=content)
 
 
@@ -45,4 +40,4 @@ ctx = Context(
 
 
 ollama_agent = Agent(OllamaLLM("ministral-3:8b"), ctx)
-print(ollama_agent.run("How you doing?"), end="\n\n")
+ollama_agent.run("What files are in your current dir?")
