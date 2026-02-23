@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from myagent.v1.models import Mount
 from ollama import chat
 
 from prompt_toolkit import PromptSession
@@ -40,11 +41,12 @@ class OllamaLLM:
 
 if __name__ == "__main__":
     model_name = "ministral-3:8b"
+    ctx = Context(mounts=[Mount(Path("~/.artifacts"), mode="rw")])
 
     session = PromptSession()
     console = Console()
 
-    ollama_agent = Agent(OllamaLLM(model_name))
+    ollama_agent = Agent(OllamaLLM(model_name), ctx)
 
     console.print(f"[INFO] - Success. Press Ctrl + C to quit at any time.")
 

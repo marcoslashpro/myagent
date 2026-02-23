@@ -55,18 +55,21 @@ like:
 ls
 ```
 
-You container has mounted a `/artifacts/` dir, where you can write files to,
-read from them and also execute them.
+You container has mounted a `/mnt/.artifacts/` dir, where you can write files to,
+read from them and also execute them. These files are persisted between session.
 
 So if you need to create a complex script to execute
 some command, make sure to:
 ```code
-echo "Your Python Code" > /artifacts/file_name.py
+echo "Your Python Code" > /mnt/.artifacts/file_name.py
 ```
 and then execute it with:
 ```code
-python /artifacts/file_name.py
+python /mnt/.artifacts/file_name.py
 ```
+
+These are the files that are already available from previous sessions:
+{{FILES}}
 
 
 # An example of a conversation

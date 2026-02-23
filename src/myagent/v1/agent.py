@@ -14,17 +14,19 @@ from myagent.v1.messages import (
     UserMessage,
 )
 from myagent.core.messages import Message, SystemMessage
+from myagent.v1.models import Mount
 from myagent.v1.tools import Tool
+from myagent.prompts import manager as prompt_manager
 
 
 @dataclass(slots=True)
 class Context:
     tools: list[Tool] = field(default_factory=list)
-    mounts: list[str] = field(default_factory=list)
+    mounts: list[Mount] = field(default_factory=list)
 
 
 class Agent:
-    _sys_prompt_path = Path(__file__).parent.parent / "prompts/docker_agent_sys.txt"
+    _mnt_dir: str = '/mnt'
 
     def __init__(self, llm: LLM, ctx: Context | None = None, cli: bool = True):
         self.ctx = ctx
@@ -37,7 +39,7 @@ class Agent:
         else:
             self.logger = None
 
-        self._executor = Docker()
+        self._executor = Docker(self._mnt_dir, mounts=ctx.mounts if ctx else [])
 
     def log(
         self,
@@ -59,9 +61,12 @@ class Agent:
         elif type == "exc":
             self.logger.log_exeption(msg)
 
-    @classmethod
-    def _generate_sys_prompt(cls):
-        return SystemMessage(content=cls._sys_prompt_path.read_text())
+    def _generate_sys_prompt(self):
+        return SystemMessage(
+            content=prompt_manager.render_sys_prompt(
+                self._mnt_dir, self.ctx.mounts if self.ctx else []
+            )
+        )
 
     def run(self, prompt: str):
         self._messages.append(UserMessage(content=prompt))

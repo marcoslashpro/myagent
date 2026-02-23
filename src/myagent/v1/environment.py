@@ -4,22 +4,33 @@ from docker import DockerClient
 import docker.errors
 from docker.models.containers import Container
 
+from myagent.v1.errors import InvalidMountError
+from myagent.v1.models import Mount
+
 
 class Docker:
-    _local_artifacts_dir = Path("~/.artifacts").expanduser()
-    _remote_artifacts_dir = "/artifacts"
-
-    def __init__(self, client: DockerClient | None = None):
+    def __init__(
+        self,
+        mnt_dir: str,
+        mounts: list[Mount],
+        client: DockerClient | None = None,
+    ):
         self.client = client or DockerClient.from_env()
-        if not self._local_artifacts_dir.exists():
-            self._local_artifacts_dir.mkdir()
         self._container: None | Container = None
-        self._volumes = {
-            str(self._local_artifacts_dir): {
-                "bind": self._remote_artifacts_dir,
-                "mode": "rw",
+        self._volumes = self._bind_mounts(mnt_dir, mounts)
+        self._mnt_dir = mnt_dir
+
+    def _bind_mounts(self, mnt_dir, mounts: list[Mount]):
+        volumes = {}
+
+        for mount in mounts:
+            if not mount.path.expanduser().exists():
+                raise InvalidMountError(str(mount.path))
+            volumes[str(mount.path.expanduser())] = {
+                "bind": f"{mnt_dir}/{mount.path.name}",
+                "mode": mount.mode,
             }
-        }
+        return volumes
 
     def run(self, cmd: str):
         try:
@@ -38,7 +49,7 @@ class Docker:
 
     def __enter__(self):
         if not self._container:
-            print(f"[INFO] - Starting container")
+            print(f"[INFO] - Starting container, mounting: {self._volumes}")
             self.container = self.client.containers.create(
                 "python:3.12-slim",
                 auto_remove=True,
