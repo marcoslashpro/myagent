@@ -155,12 +155,14 @@ def run_in_container(code: str) -> str:
     try:
         output = client.containers.run(
             "python:3.12-slim",
-            command=code.split(),
+            command=["sh", "-c", code],
             auto_remove=True,
             stdout=True,
             stderr=True,
         )
     except docker.errors.APIError as e:
-        return str(e)
+        return e.explanation if e.explanation else str(e)
+    except docker.errors.ContainerError as e:
+        return f"Error. Exit status code: {e.exit_status}. stderr: {e.stderr}"
 
     return output.decode()
