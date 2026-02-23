@@ -19,13 +19,9 @@ from myagent.v1.messages import (
 from myagent.core.messages import Message, SystemMessage
 from myagent.v1.tools import Tool
 
-from rich.console import Console
-from rich.markdown import Markdown
-
 
 @dataclass(slots=True)
 class Context:
-    system_prompt: str = field(default_factory=str)
     tools: list[Tool] = field(default_factory=list)
     mounts: list[str] = field(default_factory=list)
 
@@ -163,6 +159,6 @@ def run_in_container(code: str) -> str:
     except docker.errors.APIError as e:
         return e.explanation if e.explanation else str(e)
     except docker.errors.ContainerError as e:
-        return f"Error. Exit status code: {e.exit_status}. stderr: {e.stderr}"
+        return str(e)
 
     return output.decode()
