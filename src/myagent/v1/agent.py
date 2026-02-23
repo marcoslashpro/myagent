@@ -77,7 +77,7 @@ class Agent:
                 case AssistantOutput(think=None, code=None, final_answer=None):
                     self._messages.append(
                         UserMessage(
-                            content="Invalid response content, please remember to wrap your answer is the specific block that it belongs to"
+                            content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
                         )
                     )
                     self.log("exc", f"Invalid response from agent: {output}")
