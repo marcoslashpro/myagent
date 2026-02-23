@@ -3,11 +3,8 @@ from pathlib import Path
 import re
 from typing import Literal
 
-import docker
-import docker.errors
-
-from myagent.core.log_config import AgentLogger
 from myagent.v1.actions import AssistantOutput
+from myagent.v1.environment import Docker
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.llm import LLM
 from myagent.v1.messages import (
@@ -40,6 +37,8 @@ class Agent:
         else:
             self.logger = None
 
+        self._executor = Docker()
+
     def log(
         self,
         type: Literal["final_answer", "code", "prompt", "env", "think", "exc"],
@@ -68,37 +67,38 @@ class Agent:
         self._messages.append(UserMessage(content=prompt))
         self.log("prompt", prompt)
 
-        while True:
-            res = self.llm.run(self._messages)
+        with self._executor:
+            while True:
+                res = self.llm.run(self._messages)
 
-            output = extract_all_blocks(res.content)
+                output = extract_all_blocks(res.content)
 
-            if not output.code and not output.think and not output.final_answer:
-                self._messages.append(
-                    UserMessage(
-                        content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
+                if not output.code and not output.think and not output.final_answer:
+                    self._messages.append(
+                        UserMessage(
+                            content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
+                        )
                     )
-                )
-                self.log("exc", f"Invalid response from agent: {output}")
-                continue
+                    self.log("exc", f"Invalid response from agent: {output}")
+                    continue
 
-            if think := output.think:
-                self.log("think", think)
-                self._messages.append(AssistantMessage(content=think))
+                if think := output.think:
+                    self.log("think", think)
+                    self._messages.append(AssistantMessage(content=think))
 
-            if code := output.code:
-                self.log("code", code)
-                self._messages.append(AssistantMessage(code))
+                if code := output.code:
+                    self.log("code", code)
+                    self._messages.append(AssistantMessage(code))
 
-                observation = run_in_container(code)
-                self.log("env", observation)
+                    observation = self._executor.run(code)
+                    self.log("env", observation)
 
-                self._messages.append(UserMessage(content=observation))
+                    self._messages.append(UserMessage(content=observation))
 
-            if final_answer := output.final_answer:
-                self.log("final_answer", final_answer)
-                self._messages.append(AssistantMessage(content=final_answer))
-                return
+                if final_answer := output.final_answer:
+                    self.log("final_answer", final_answer)
+                    self._messages.append(AssistantMessage(content=final_answer))
+                    return
 
     @staticmethod
     def _create_tool_mapping(tools: list[Tool]) -> dict[str, Tool]:
@@ -145,21 +145,3 @@ def extract_all_blocks(prompt: str) -> AssistantOutput:
         results[label] = content
 
     return AssistantOutput(**results)
-
-
-def run_in_container(code: str) -> str:
-    client = docker.from_env()
-    try:
-        output = client.containers.run(
-            "python:3.12-slim",
-            command=["sh", "-c", code],
-            auto_remove=True,
-            stdout=True,
-            stderr=True,
-        )
-    except docker.errors.APIError as e:
-        return e.explanation if e.explanation else str(e)
-    except docker.errors.ContainerError as e:
-        return str(e)
-
-    return output.decode()

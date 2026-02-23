@@ -134,7 +134,7 @@ def test_run(msgs, exp):
         def run(self, messages, model=None):
             return AssistantMessage(content=self._iter_msgs() or "")
 
-    with patch("myagent.v1.agent.run_in_container", new=lambda x: f"Env:{x}"):
+    with patch("myagent.v1.agent.Docker.run", new=lambda self, x: f"Env:{x}"):
         agent = Agent(LLM(""), cli=False)
         agent.run("")
 

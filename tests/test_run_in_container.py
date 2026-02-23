@@ -1,4 +1,4 @@
-from myagent.v1.agent import run_in_container
+from myagent.v1.environment import Docker
 import pytest
 
 
@@ -7,5 +7,5 @@ import pytest
     "echo \"Hello World\""
 ])
 def test_run_in_container(code):
-    out = run_in_container(code)
+    out = Docker().run(code)
     assert out == "Hello World\n"

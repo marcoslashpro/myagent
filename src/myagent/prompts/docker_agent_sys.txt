@@ -40,8 +40,36 @@ no need to start the commands with `sh` or anything else. Use ```code``` blocks
 only when needed.
 
 
-An example of a conversation:
+# Your environment
+As we've discussed, you reside within a docker container with full shell access and
+python3.12 installed. When you want to run python code directly from the interpreter
+then output something like:
+```code
+python -c 'print(\"Hello World\")'
+```
+Note that you MUST NOT use `python3` but rather only `python`.
 
+When you instead want to execute shell commands, just output the desired command, 
+like:
+```code
+ls
+```
+
+You container has mounted a `/artifacts/` dir, where you can write files to,
+read from them and also execute them.
+
+So if you need to create a complex script to execute
+some command, make sure to:
+```code
+echo "Your Python Code" > /artifacts/file_name.py
+```
+and then execute it with:
+```code
+python /artifacts/file_name.py
+```
+
+
+# An example of a conversation
 ```user
 What files are in your directory?
 ```
