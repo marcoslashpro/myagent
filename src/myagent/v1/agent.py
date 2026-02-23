@@ -73,31 +73,32 @@ class Agent:
 
             output = extract_all_blocks(res.content)
 
-            match output:
-                case AssistantOutput(think=None, code=None, final_answer=None):
-                    self._messages.append(
-                        UserMessage(
-                            content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
-                        )
+            if not output.code and not output.think and not output.final_answer:
+                self._messages.append(
+                    UserMessage(
+                        content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
                     )
-                    self.log("exc", f"Invalid response from agent: {output}")
-                    continue
-                case AssistantOutput(think=think, code=code, final_answer=final_answer):
-                    if final_answer:
-                        self._messages.append(AssistantMessage(content=final_answer))
-                        self.log("final_answer", final_answer)
-                        return
-                    if think:
-                        self.log("think", think)
-                        self._messages.append(AssistantMessage(content=think))
-                    if code:
-                        self.log("code", code)
-                        self._messages.append(AssistantMessage(code))
+                )
+                self.log("exc", f"Invalid response from agent: {output}")
+                continue
 
-                        observation = run_in_container(code)
-                        self.log("env", observation)
+            if think := output.think:
+                self.log("think", think)
+                self._messages.append(AssistantMessage(content=think))
 
-                        self._messages.append(UserMessage(content=observation))
+            if code := output.code:
+                self.log("code", code)
+                self._messages.append(AssistantMessage(code))
+
+                observation = run_in_container(code)
+                self.log("env", observation)
+
+                self._messages.append(UserMessage(content=observation))
+
+            if final_answer := output.final_answer:
+                self.log("final_answer", final_answer)
+                self._messages.append(AssistantMessage(content=final_answer))
+                return
 
     @staticmethod
     def _create_tool_mapping(tools: list[Tool]) -> dict[str, Tool]:
