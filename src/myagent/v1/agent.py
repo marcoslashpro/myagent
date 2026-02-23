@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 import re
+from typing import Literal
 
 import docker
 import docker.errors
 
+from myagent.core.log_config import AgentLogger
 from myagent.v1.actions import AssistantOutput
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.llm import LLM
@@ -21,9 +23,6 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 
-console = Console()
-
-
 @dataclass(slots=True)
 class Context:
     system_prompt: str = field(default_factory=str)
@@ -34,10 +33,36 @@ class Context:
 class Agent:
     _sys_prompt_path = Path(__file__).parent.parent / "prompts/docker_agent_sys.txt"
 
-    def __init__(self, llm: LLM, ctx: Context | None = None):
+    def __init__(self, llm: LLM, ctx: Context | None = None, cli: bool = True):
         self.ctx = ctx
         self._messages: list[Message] = [self._generate_sys_prompt()]
         self.llm = llm
+        if cli:
+            from myagent.core.log_config import AgentLogger
+
+            self.logger = AgentLogger()
+        else:
+            self.logger = None
+
+    def log(
+        self,
+        type: Literal["final_answer", "code", "prompt", "env", "think", "exc"],
+        msg: str,
+    ):
+        if not self.logger:
+            return
+        if type == "code":
+            self.logger.log_code(msg)
+        elif type == "env":
+            self.logger.log_observation(msg)
+        elif type == "final_answer":
+            self.logger.log_final_answer(msg)
+        elif type == "think":
+            self.logger.log_think(msg)
+        elif type == "prompt":
+            self.logger.log_prompt(msg)
+        elif type == "exc":
+            self.logger.log_exeption(msg)
 
     @classmethod
     def _generate_sys_prompt(cls):
@@ -45,26 +70,12 @@ class Agent:
 
     def run(self, prompt: str):
         self._messages.append(UserMessage(content=prompt))
+        self.log("prompt", prompt)
 
         while True:
-            # console.log(
-            #     "[DEBUG] - Calling model with messages:\n"
-            #     f"{"\n\n".join([str(msg) for msg in self._messages])}"
-            # )
             res = self.llm.run(self._messages)
 
-            # console.log(f"[DEBUG] - Extracting blocks from: {res.content}")
             output = extract_all_blocks(res.content)
-
-            console.print(
-                Markdown(
-                    f"""
-\n**Agent**
-- Action: {'Code\n' if output.code else 'Think\n' if output.think else 'Final Answer\n' if output.final_answer else "Invalid" }
-- Content: {output.code or output.final_answer or output.think or "Invalid"}
-"""
-                )
-            )
 
             match output:
                 case AssistantOutput(think=None, code=None, final_answer=None):
@@ -73,18 +84,22 @@ class Agent:
                             content="Invalid response content, please remember to wrap your answer is the specific block that it belongs to"
                         )
                     )
+                    self.log("exc", f"Invalid response from agent: {output}")
                     continue
                 case AssistantOutput(think=think, code=code, final_answer=final_answer):
                     if final_answer:
                         self._messages.append(AssistantMessage(content=final_answer))
+                        self.log("final_answer", final_answer)
                         return
                     if think:
+                        self.log("think", think)
                         self._messages.append(AssistantMessage(content=think))
                     if code:
+                        self.log("code", code)
                         self._messages.append(AssistantMessage(code))
 
                         observation = run_in_container(code)
-                        console.print(Markdown(f"\n**Environment**\n- {observation}"))
+                        self.log("env", observation)
 
                         self._messages.append(UserMessage(content=observation))
 

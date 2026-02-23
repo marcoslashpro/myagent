@@ -1,6 +1,10 @@
 from pathlib import Path
 
 from ollama import chat
+
+from prompt_toolkit import PromptSession
+from prompt_toolkit.patch_stdout import patch_stdout
+
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -37,13 +41,13 @@ class OllamaLLM:
 if __name__ == "__main__":
     model_name = "ministral-3:8b"
 
+    session = PromptSession()
     console = Console()
 
-    console.print(f"[INFO] - Initializing {model_name}")
     ollama_agent = Agent(OllamaLLM(model_name))
 
     console.print(f"[INFO] - Success. Press Ctrl + C to quit at any time.")
 
     while True:
-        console.print(Markdown("**You**"))
-        ollama_agent.run(input("- "))
+        prompt = session.prompt(">>> ", bottom_toolbar="[bold] Status: Running [/bold]")
+        ollama_agent.run(prompt)

@@ -17,4 +17,5 @@ dev = [
 
 examples = [
     "ollama>=0.6.1",
+    "prompt-toolkit>=3.0.52",
 ]
