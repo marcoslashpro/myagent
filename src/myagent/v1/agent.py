@@ -16,7 +16,6 @@ from myagent.v1.messages import (
 from myagent.core.messages import Message, SystemMessage
 from myagent.v1.models import Mount
 from myagent.v1.tools import Tool
-from myagent.prompts import manager as prompt_manager
 
 
 @dataclass(slots=True)
@@ -26,11 +25,8 @@ class Context:
 
 
 class Agent:
-    _mnt_dir: str = '/mnt'
-
     def __init__(self, llm: LLM, ctx: Context | None = None, cli: bool = True):
         self.ctx = ctx
-        self._messages: list[Message] = [self._generate_sys_prompt()]
         self.llm = llm
         if cli:
             from myagent.core.log_config import AgentLogger
@@ -39,7 +35,7 @@ class Agent:
         else:
             self.logger = None
 
-        self._executor = Docker(self._mnt_dir, mounts=ctx.mounts if ctx else [])
+        self._env = Docker(ctx.mounts if ctx else [])
 
     def log(
         self,
@@ -61,49 +57,41 @@ class Agent:
         elif type == "exc":
             self.logger.log_exeption(msg)
 
-    def _generate_sys_prompt(self):
-        return SystemMessage(
-            content=prompt_manager.render_sys_prompt(
-                self._mnt_dir, self.ctx.mounts if self.ctx else []
-            )
-        )
-
     def run(self, prompt: str):
-        self._messages.append(UserMessage(content=prompt))
+        self._env.messages.append(UserMessage(content=prompt))
         self.log("prompt", prompt)
 
-        with self._executor:
-            while True:
-                res = self.llm.run(self._messages)
+        while True:
+            res = self.llm.run(self._env.messages)
 
-                output = extract_all_blocks(res.content)
+            output = extract_all_blocks(res.content)
 
-                if not output.code and not output.think and not output.final_answer:
-                    self._messages.append(
-                        UserMessage(
-                            content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
-                        )
+            if not output.code and not output.think and not output.final_answer:
+                self._env.messages.append(
+                    UserMessage(
+                        content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
                     )
-                    self.log("exc", f"Invalid response from agent: {output}")
-                    continue
+                )
+                self.log("exc", f"Invalid response from agent: {output}")
+                continue
 
-                if think := output.think:
-                    self.log("think", think)
-                    self._messages.append(AssistantMessage(content=think))
+            if think := output.think:
+                self.log("think", think)
+                self._env.messages.append(AssistantMessage(content=think))
 
-                if code := output.code:
-                    self.log("code", code)
-                    self._messages.append(AssistantMessage(code))
+            if code := output.code:
+                self.log("code", code)
+                self._env.messages.append(AssistantMessage(code))
 
-                    observation = self._executor.run(code)
-                    self.log("env", observation)
+                observation = self._env.run(code)
+                self.log("env", observation)
 
-                    self._messages.append(UserMessage(content=observation))
+                self._env.messages.append(UserMessage(content=observation))
 
-                if final_answer := output.final_answer:
-                    self.log("final_answer", final_answer)
-                    self._messages.append(AssistantMessage(content=final_answer))
-                    return
+            if final_answer := output.final_answer:
+                self.log("final_answer", final_answer)
+                self._env.messages.append(AssistantMessage(content=final_answer))
+                return
 
     @staticmethod
     def _create_tool_mapping(tools: list[Tool]) -> dict[str, Tool]:

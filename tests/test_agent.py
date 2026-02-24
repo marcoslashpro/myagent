@@ -143,4 +143,4 @@ def test_run(msgs, exp):
         # We need a sophisticated sys prompt that I cannot expect the user to
         # insert, and if I put it in the __init__, then the user is "welcome"
         # to put his own, but he really is not.
-        assert agent._messages[1:] == exp
+        assert agent._env.messages[1:] == exp
