@@ -50,7 +50,7 @@ class Docker:
         sys_prompt = self._sys_prompt_path.read_text()
         sys_prompt = (
             sys_prompt.replace(
-                "{{FILES}}", _format_volumes_for_sys_prompt(self._volumes)
+                "{{FILES}}", f"```bash\n{_format_volumes_for_sys_prompt(self._volumes)}\n```"
             )
             .replace("{{MNT_DIR}}", self._mnt_dir)
             .replace("{{ARTIFACTS_DIR}}", self._artifacts_path.name)
