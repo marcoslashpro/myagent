@@ -100,6 +100,7 @@ def _format_volumes_for_sys_prompt(volumes: dict, level: int = 0):
                             },
                             level + 1,
                         )
+                break
         else:
             formatted += f"{indent}|-{bind_path}  # {mode}\n"
 
