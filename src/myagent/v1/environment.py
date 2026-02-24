@@ -1,6 +1,4 @@
 from pathlib import Path
-import time
-from typing import Literal
 
 from docker import DockerClient
 import docker.errors
@@ -50,7 +48,8 @@ class Docker:
         sys_prompt = self._sys_prompt_path.read_text()
         sys_prompt = (
             sys_prompt.replace(
-                "{{FILES}}", f"```bash\n{_format_volumes_for_sys_prompt(self._volumes)}\n```"
+                "{{FILES}}",
+                f"```bash\n{_format_volumes_for_sys_prompt(self._volumes)}\n```",
             )
             .replace("{{MNT_DIR}}", self._mnt_dir)
             .replace("{{ARTIFACTS_DIR}}", self._artifacts_path.name)
@@ -71,6 +70,7 @@ class Docker:
             return e.explanation if e.explanation else str(e)
         except docker.errors.ContainerError as e:
             return str(e)
+
 
 def _format_volumes_for_sys_prompt(volumes: dict, level: int = 0):
     formatted = ""
