@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing_extensions import Self
+from typing import Self
 from unittest.mock import patch
 
 from myagent.v1.environment import Docker, _format_volumes_for_sys_prompt

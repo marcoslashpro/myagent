@@ -48,8 +48,10 @@ if __name__ == "__main__":
 
     ollama_agent = Agent(OllamaLLM(model_name), ctx)
 
-    console.print(f"[INFO] - Success. Press Ctrl + C to quit at any time.")
+    console.print(
+        f"[INFO] - Success. Press Ctrl + C to quit at any time. Type any prompt to start."
+    )
 
     while True:
-        prompt = session.prompt(">>> ", bottom_toolbar="[bold] Status: Running [/bold]")
+        prompt = session.prompt(">>> ")
         ollama_agent.run(prompt)
