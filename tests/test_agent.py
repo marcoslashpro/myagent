@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from myagent.core.messages import AssistantMessage, UserMessage
-from myagent.v1.actions import AssistantOutput
+from myagent.v1.actions import AgentAction
 from myagent.v1.agent import Agent, extract_all_blocks
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.messages import ToolCall
@@ -53,13 +53,13 @@ def test_execute_tool_call_with_invalid_args():
 @pytest.mark.parametrize(
     "text, exp",
     [
-        ("```think\nSomething```", AssistantOutput(think="Something")),
+        ("```think\nSomething```", AgentAction(think="Something")),
         (
             "```think\nSomething``````code\nls``````final_answer\nDone```",
-            AssistantOutput(final_answer="Done", think="Something", code="ls"),
+            AgentAction(final_answer="Done", think="Something", code="ls"),
         ),
-        ("```bdafojb```", AssistantOutput()),
-        ("``````", AssistantOutput()),
+        ("```bdafojb```", AgentAction()),
+        ("``````", AgentAction()),
     ],
 )
 def test_extract_blocks(text, exp):

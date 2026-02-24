@@ -27,7 +27,7 @@ class Observation:
 
 
 @dataclass(slots=True)
-class AssistantOutput:
+class AgentAction:
     final_answer: str | None = field(default=None)
     think: str | None = field(default=None)
     code: str | None = field(default=None)

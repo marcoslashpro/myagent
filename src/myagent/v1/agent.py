@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 from typing import Literal
 
-from myagent.v1.actions import AssistantOutput
+from myagent.v1.actions import AgentAction
 from myagent.v1.environment import Docker
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.llm import LLM
@@ -132,7 +132,7 @@ class Agent:
         return results
 
 
-def extract_all_blocks(prompt: str) -> AssistantOutput:
+def extract_all_blocks(prompt: str) -> AgentAction:
     actions = ["think", "code", "final_answer"]
     # 1. Join labels into an OR group: (think|code|final)
     actions_regex = "|".join(actions)
@@ -149,4 +149,4 @@ def extract_all_blocks(prompt: str) -> AssistantOutput:
         content = match.group(2).strip()  # The actual block content
         results[label] = content
 
-    return AssistantOutput(**results)
+    return AgentAction(**results)

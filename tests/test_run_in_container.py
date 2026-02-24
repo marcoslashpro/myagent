@@ -7,5 +7,5 @@ import pytest
     "echo \"Hello World\""
 ])
 def test_run_in_container(code):
-    out = Docker([]).run(code)
+    out = Docker('', []).run(code)
     assert out == "Hello World\n"
