@@ -11,14 +11,9 @@ The agent has the possibility to think, code and answer back to the user.
 
 This is currently tested on both `ministral-3:8b` and `qwen3:4b` through `ollama` and they seem to be performing quite nice.
 Example scripts are in `examples/` folder.
-To run it you'll need to install the examples dependencies with:
+To run an example, check out the example folder and select the example you want to run, then execute:
 ```bash
-uv sync --examples
-```
-
-And then run:
-```bash
-uv run examples/your_example.py
+./scripts.sh run-example "example_name.py"
 ```
 
 For the official slim version, I intend to be dependency free, I will try to get rid of `rich` when the build is public so that "pretty logging" can be only done
@@ -26,8 +21,7 @@ either when installing a cli version or during development.
 
 Speakng of, to run tests:
 ```bash
-uv sync --dev
-uv run pytest
+./scripts run-tests [TEST PATH | NULL]
 ```
 
 In the coming future I'll be introducing tool calling and streaming, I also have a very funny idea on how to implement tools for this agent, as well as a context that
