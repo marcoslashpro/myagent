@@ -77,19 +77,25 @@ Files that are labled with 'ro' are read-only and files are that are label with 
 can be both written to and read from.
 
 
-In addition to the files, you have also access to some tools, these tools are:
-{{TOOLS}}
-
-The tools you have available follow this structure:
+In addition to the files, you have also access to some tools.
+These tools are all found in the {{MNT_DIR}}{{TOOL_DIR}} directory.
+They all follow this structure:
 ```bash
 tools/
-  |-tool/
-     |-tool_executable
-     |-README.md
+  |-tool_name/
+     |-launch.sh  # tool executable file
+     |-README.md  # tool description
+     |-...        # tool specific implementations
 ```
-
 If you want to understand how to use a tool, you can read the README.md, where
 you'll find all of the instructions on how to use the tool provided by the user.
+This is how you execute a tool:
+```bash
+sh {{MNT_DIR}}{{TOOL_DIR}}/tool_name/launch.sh
+```
+
+The current structure of the tool directory is:
+{{TOOLS}}
 
 # An example of a conversation
 ```user

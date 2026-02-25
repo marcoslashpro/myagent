@@ -46,12 +46,11 @@ if __name__ == "__main__":
     session = PromptSession()
     console = Console()
 
-    ollama_agent = Agent(OllamaLLM(model_name), ctx)
+    with Agent(OllamaLLM(model_name), ctx) as ollama_agent:
+        console.print(
+            f"[INFO] - Success. Press Ctrl + C to quit at any time. Type any prompt to start."
+        )
 
-    console.print(
-        f"[INFO] - Success. Press Ctrl + C to quit at any time. Type any prompt to start."
-    )
-
-    while True:
-        prompt = session.prompt(">>> ")
-        ollama_agent.run(prompt)
+        while True:
+            prompt = session.prompt(">>> ")
+            ollama_agent.run(prompt)

@@ -1,8 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from myagent.core.messages import AssistantMessage, UserMessage
 from myagent.v1.actions import AgentAction
 from myagent.v1.agent import Agent, extract_all_blocks
+from myagent.v1.environment import Docker
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.messages import ToolCall
 from myagent.v1.tools import Tool
@@ -133,14 +134,22 @@ def test_run(msgs, exp):
 
         def run(self, messages, model=None):
             return AssistantMessage(content=self._iter_msgs() or "")
+        
+    class MockEnv:
+        def __init__(self, *args) -> None:
+            self.messages = []
 
-    with patch("myagent.v1.agent.Docker.run", new=lambda self, x: f"Env:{x}"):
-        agent = Agent(LLM(""), cli=False)
-        agent.run("")
+        def start(self):
+            pass
 
-        # First message is the system prompt, beyond the scope of testing,
-        # might make the system prompt injectable, but for this specific agent
-        # We need a sophisticated sys prompt that I cannot expect the user to
-        # insert, and if I put it in the __init__, then the user is "welcome"
-        # to put his own, but he really is not.
-        assert agent._env.messages[1:] == exp
+        def stop(self):
+            pass
+
+        def run(self, cmd):
+            return f"Env:{cmd}"
+
+    with patch("myagent.v1.agent.Docker", new=MockEnv):
+        with Agent(LLM(""), cli=False) as agent:
+            agent.run("")
+
+        assert agent._env.messages == exp

@@ -2,6 +2,10 @@ class ModelError(Exception):
     pass
 
 
+class UserError(Exception):
+    pass
+
+
 class ModelResponseError(ModelError):
     """Exception raised when model response is invalid."""
 
@@ -15,5 +19,16 @@ class ToolError(ModelError):
 
 
 class InvalidMountError(Exception):
-    def __init__(self, path: str) -> None:
-        super().__init__(f"Invalid file path: {path}, does not exists")
+    def __init__(self, msg: str | None = None, path: str | None = None) -> None:
+        super().__init__(msg if msg else f"Invalid file path: {path}, does not exists")
+
+
+class InvalidToolMountError(InvalidMountError):
+    def __init__(self, msg: str | None = None, path: str | None = None) -> None:
+        super().__init__(
+            msg if msg else f"Tool executable not found at path: {path}", path
+        )
+
+
+class AgentEnvironmentError(Exception):
+    pass

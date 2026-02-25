@@ -23,7 +23,16 @@ class FinalAction:
 @dataclass(slots=True)
 class Observation:
     content: str
-    type: Literal["oservation"]
+    type: Literal["observation", "observation_error"]
+    status_code: int
+
+    def __repr__(self) -> str:
+        return f"""
+```observation
+{"stdout" if self.type == 'observation' else "stderr"}: {self.content}
+exit status: {self.status_code}
+```
+"""
 
 
 @dataclass(slots=True)

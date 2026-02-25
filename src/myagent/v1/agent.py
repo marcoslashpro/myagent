@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 import re
 from typing import Literal
 
 from myagent.v1.actions import AgentAction
 from myagent.v1.environment import Docker
-from myagent.v1.errors import ModelError, ToolError
+from myagent.v1.errors import AgentEnvironmentError, ModelError, ToolError, UserError
 from myagent.v1.llm import LLM
 from myagent.v1.messages import (
     AssistantMessage,
@@ -13,14 +12,13 @@ from myagent.v1.messages import (
     ToolMessage,
     UserMessage,
 )
-from myagent.core.messages import Message, SystemMessage
 from myagent.v1.models import Mount
 from myagent.v1.tools import Tool
 
 
 @dataclass(slots=True)
 class Context:
-    tools: list[Tool] = field(default_factory=list)
+    tools: list[Mount] = field(default_factory=list)
     mounts: list[Mount] = field(default_factory=list)
 
 
@@ -35,7 +33,7 @@ class Agent:
         else:
             self.logger = None
 
-        self._env = Docker(ctx.mounts if ctx else [])
+        self._env = Docker(ctx.tools, ctx.mounts) if ctx else Docker([], [])
 
     def log(
         self,
@@ -57,6 +55,15 @@ class Agent:
         elif type == "exc":
             self.logger.log_exeption(msg)
 
+    def __enter__(self):
+        print("\n[INFO] - Starting container...")
+        self._env.start()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        print("\n[INFO] - Stopping container...")
+        self._env.stop()
+
     def run(self, prompt: str):
         self._env.messages.append(UserMessage(content=prompt))
         self.log("prompt", prompt)
@@ -72,7 +79,7 @@ class Agent:
                         content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
                     )
                 )
-                self.log("exc", f"Invalid response from agent: {output}")
+                self.log("exc", f"Invalid response from agent: {res.content}")
                 continue
 
             if think := output.think:
@@ -83,10 +90,17 @@ class Agent:
                 self.log("code", code)
                 self._env.messages.append(AssistantMessage(code))
 
-                observation = self._env.run(code)
-                self.log("env", observation)
+                try:
+                    observation = self._env.run(code)
+                except AgentEnvironmentError as e:
+                    raise UserError(
+                        "Agent environment not properly initialized, please make sure to "
+                        "use the agent in a `with` block."
+                    )
 
-                self._env.messages.append(UserMessage(content=observation))
+                self.log("env", str(observation))
+
+                self._env.messages.append(UserMessage(content=str(observation)))
 
             if final_answer := output.final_answer:
                 self.log("final_answer", final_answer)

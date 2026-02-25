@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Self
 from unittest.mock import patch
 
+from myagent.v1.actions import Observation
 from myagent.v1.environment import Docker, _format_volumes_for_sys_prompt
 import pytest
 
@@ -13,8 +14,13 @@ from myagent.v1.models import Mount, Volumes
     "code", ["python3 -c 'print(\"Hello World\")'", 'echo "Hello World"']
 )
 def test_run_in_container(code):
-    out = Docker([]).run(code)
-    assert out == "Hello World\n"
+    env = Docker([], [])
+    env.start()
+    out = env.run(code)
+    env.stop()
+    assert out == Observation(
+        content="Hello World\n", type="observation", status_code=0
+    )
 
 
 @pytest.mark.parametrize(
@@ -44,7 +50,7 @@ def test_run_in_container(code):
 )
 def test_bind_mnts(mnts: list[Mount], exp: dict):
     with patch("myagent.v1.environment.Path.exists", return_value=True):
-        env = Docker(mnts)
+        env = Docker([], mnts)
 
     assert env._volumes == exp
 
@@ -147,3 +153,22 @@ def test_format_volumes_for_sys_prompt_with_dirs(volumes, subfiles, innerdirs, e
 
     with patch("myagent.v1.environment.Path", new=MockPath):
         assert _format_volumes_for_sys_prompt(volumes) == exp
+
+
+@pytest.mark.parametrize(
+    "tools, exp",
+    [
+        (
+            [Mount(path=Path("somewhere"), mode="ro")],
+            {
+                "somewhere": {
+                    "bind": f"{Docker._mnt_dir}{Docker._mnt_tools}/somewhere",
+                    "mode": "ro",
+                }
+            },
+        )
+    ],
+)
+def test_bind_tools(tools, exp):
+    with patch("myagent.v1.environment.validate_tool"):
+        assert Docker(tools, [])._bind_tools(tools) == exp
