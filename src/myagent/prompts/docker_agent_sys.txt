@@ -110,6 +110,6 @@ Let me act on that.
 ls
 ```
 ```observation```
-```final
+```final_answer
 The directory seems to be empty
 ```
