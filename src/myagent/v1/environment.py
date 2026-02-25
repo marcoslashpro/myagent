@@ -38,23 +38,6 @@ class Docker:
         self._container: Container | None = None
         self.messages: list[Message] = messages or [self._generate_sys_prompt()]
 
-    def start(self):
-        self._container = self.client.containers.run(
-            "python:3.12-slim",
-            command="bash -c 'while true; do sleep 1; done'",
-            detach=True,
-            tty=False,
-            volumes={
-                **self._volumes,
-                **self._tools,
-            },  # type: ignore
-        )
-
-    def stop(self):
-        if self._container:
-            self._container.stop()
-            self._container.remove()
-
     def _bind_tools(self, tools: list[Mount]) -> Volumes:
         volumes: Volumes = {}
 
@@ -125,6 +108,18 @@ class Docker:
         )
         return SystemMessage(content=sys_prompt)
 
+    def start(self):
+        self._container = self.client.containers.run(
+            "python:3.12-slim",
+            command="bash -c 'while true; do sleep 1; done'",
+            detach=True,
+            tty=False,
+            volumes={
+                **self._volumes,
+                **self._tools,
+            },  # type: ignore
+        )
+
     def run(self, cmd: str) -> Observation:
         try:
             if not self._container:
@@ -157,6 +152,11 @@ class Docker:
                 type="observation_error",
                 status_code=e.exit_status,
             )
+
+    def stop(self):
+        if self._container:
+            self._container.stop()
+            self._container.remove()
 
 
 def _format_volumes_for_sys_prompt(volumes: dict, level: int = 0):
