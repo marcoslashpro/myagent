@@ -118,6 +118,15 @@ class Docker:
                 **self._volumes,
                 **self._tools,
             },  # type: ignore
+            read_only=True,
+            tmpfs={"/tmp": "size=64m"},
+            mem_limit="512m",
+            nano_cpus=1_000_000_000,
+            user="nobody",  # don't run as root
+            cap_drop=["ALL"],  # drop all linux capabilities
+            cap_add=["NET_RAW"],  # add back only what's needed for networking
+            security_opt=["no-new-privileges:true"],  # prevent privilege escalation
+            pids_limit=100,  # prevent fork bombs
         )
 
     def run(self, cmd: str) -> Observation:
