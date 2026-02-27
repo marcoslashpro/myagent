@@ -30,5 +30,14 @@ class InvalidToolMountError(InvalidMountError):
         )
 
 
+class DockerSetupError(Exception):
+    pass
+
+
+class InvalidDockerFileError(UserError, DockerSetupError):
+    def __init__(self, path: str) -> None:
+        super().__init__(f"Dockerfile at path: {path} not found")
+
+
 class AgentEnvironmentError(Exception):
     pass

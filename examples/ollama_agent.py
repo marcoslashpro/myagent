@@ -41,7 +41,10 @@ class OllamaLLM:
 
 if __name__ == "__main__":
     model_name = "ministral-3:8b"
-    ctx = Context(mounts=[Mount(Path("~/.artifacts"), mode="rw")])
+    ctx = Context(
+        mounts=[Mount(Path("~/.artifacts"), mode="rw")],
+        remote_repo="ghcr.io/astral-sh/uv:python3.14-alpine",
+    )
 
     session = PromptSession()
     console = Console()

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 import re
 from typing import Literal
 
@@ -18,8 +19,10 @@ from myagent.v1.tools import Tool
 
 @dataclass(slots=True)
 class Context:
-    tools: list[Mount] = field(default_factory=list)
+    tools: list[Tool] = field(default_factory=list)
     mounts: list[Mount] = field(default_factory=list)
+    dockerfile: Path | None = field(default=None)
+    remote_repo: str | None = field(default=None)
 
 
 class Agent:
@@ -33,7 +36,11 @@ class Agent:
         else:
             self.logger = None
 
-        self._env = Docker(ctx.tools, ctx.mounts) if ctx else Docker([], [])
+        self._env = (
+            Docker(ctx.tools, ctx.mounts, ctx.dockerfile, ctx.remote_repo)
+            if ctx
+            else Docker([], [])
+        )
 
     def log(
         self,
@@ -106,32 +113,6 @@ class Agent:
                 self.log("final_answer", final_answer)
                 self._env.messages.append(AssistantMessage(content=final_answer))
                 return
-
-    @staticmethod
-    def _create_tool_mapping(tools: list[Tool]) -> dict[str, Tool]:
-        return {tool.name: tool for tool in tools}
-
-    @staticmethod
-    def _execute_tool_calls(
-        tools: dict[str, Tool], tool_calls: list[ToolCall]
-    ) -> list[ToolMessage]:
-        results: list[ToolMessage] = []
-
-        for tool_call in tool_calls:
-            to_exec = tools.get(tool_call.name)
-
-            if not to_exec:
-                raise ModelError(
-                    f"Tool with name: {tool_call.name} does not exist",
-                )
-
-            try:
-                tool_res = to_exec.func(**tool_call.args)
-                results.append(ToolMessage(content=str(tool_res), name=to_exec.name))
-            except TypeError as e:
-                raise ToolError(str(e), to_exec.name) from e
-
-        return results
 
 
 def extract_all_blocks(prompt: str) -> AgentAction:

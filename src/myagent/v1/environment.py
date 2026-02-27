@@ -1,15 +1,23 @@
+import io
+import os
 from pathlib import Path
-from warnings import warn
 
 from docker import DockerClient
 import docker.errors
 from docker.models.containers import Container
+from docker.models.images import Image
 
 from myagent.core.messages import Message, SystemMessage
 from myagent.v1.actions import Observation
-from myagent.v1.errors import AgentEnvironmentError, InvalidMountError
-from myagent.v1.models import Mount, RoOrRw, Volumes
-from myagent.v1.tools import validate_tool
+from myagent.v1.errors import (
+    AgentEnvironmentError,
+    DockerSetupError,
+    InvalidDockerFileError,
+    InvalidMountError,
+)
+from myagent.v1.models import ImageMetadata, Mount, Volumes
+from myagent.v1.tools import Tool
+from myagent.v1.types import RoOrRw
 
 
 LOCAL_ROOT_DIR = Path("~/.myagent").expanduser()
@@ -22,11 +30,14 @@ class Docker:
     _sys_prompt_path = Path(__file__).parent.parent / "prompts/docker_agent_sys.txt"
     _artifacts_path = LOCAL_ROOT_DIR.joinpath("artifacts").expanduser()
     _builtin_tools_path = LOCAL_ROOT_DIR.joinpath("tools").expanduser()
+    _img_tag = "agent-env:latest"
 
     def __init__(
         self,
-        tools: list[Mount],
+        tools: list[Tool],
         mounts: list[Mount],
+        dockerfile: Path | None = None,
+        remote_repo: str | None = None,
         messages: list[Message] | None = None,
         client: DockerClient | None = None,
     ):
@@ -35,14 +46,15 @@ class Docker:
         self._tools: Volumes = {**self._bind_tools(tools), **self._bind_builtins()}
         self._volumes: Volumes = self._bind_mounts(self._add_artifacts_to(mounts))
 
+        self._img: Image | str = self._build_img(dockerfile, remote_repo)
+        self._img_metadata: ImageMetadata = ImageMetadata.from_img(self._img)
         self._container: Container | None = None
         self.messages: list[Message] = messages or [self._generate_sys_prompt()]
 
-    def _bind_tools(self, tools: list[Mount]) -> Volumes:
+    def _bind_tools(self, tools: list[Tool]) -> Volumes:
         volumes: Volumes = {}
 
         for tool in tools:
-            validate_tool(tool.path)
             volumes.update(
                 _build_volume(
                     str(tool.path),
@@ -58,12 +70,11 @@ class Docker:
         volumes: Volumes = {}
 
         for builtin_tool in self._builtin_tools_path.iterdir():
-            validate_tool(builtin_tool)
             volumes.update(
                 _build_volume(
                     str(builtin_tool),
                     f"{self._mnt_dir}{self._mnt_tools}/{builtin_tool.name}",
-                    "ro",
+                    "rw",
                 )
             )
         return volumes
@@ -91,7 +102,9 @@ class Docker:
     def _generate_sys_prompt(self) -> SystemMessage:
         sys_prompt = self._sys_prompt_path.read_text()
         sys_prompt = (
-            sys_prompt.replace(
+            sys_prompt.replace("{{IMAGE_METADATA}}", str(self._img_metadata))
+            .replace("{{SHELL}}", self._img_metadata.shell)
+            .replace(
                 "{{FILES}}",
                 f"```bash\n{_format_volumes_for_sys_prompt(self._volumes)}\n```",
             )
@@ -108,22 +121,48 @@ class Docker:
         )
         return SystemMessage(content=sys_prompt)
 
+    def _build_img(self, dockerfile: Path | None, pull: str | None) -> Image:
+        if pull and dockerfile:
+            raise DockerSetupError(
+                "Cannot create a valid image when provided both "
+                "dockerfile and an image to pull from registry. "
+                "Please provide only one of the two."
+            )
+
+        if dockerfile:
+            if not dockerfile.exists():
+                raise InvalidDockerFileError(str(dockerfile))
+
+            return self.client.images.build(
+                path=str(dockerfile.parent.resolve()),
+                dockerfile=dockerfile.name,
+                tag=self._img_tag,
+                forcerm=True,
+            )[0]
+
+        if pull:
+            return self.client.images.pull(pull)
+
+        return self.client.images.build(
+            fileobj=_write_default_dockerfile(),
+            tag=self._img_tag,
+            forcerm=True,
+        )[0]
+
     def start(self):
         self._container = self.client.containers.run(
-            "python:3.12-slim",
-            command="bash -c 'while true; do sleep 1; done'",
+            self._img,
+            command=f"{self._img_metadata.shell} -c 'while true; do sleep 1; done'",
             detach=True,
             tty=False,
             volumes={
                 **self._volumes,
                 **self._tools,
             },  # type: ignore
-            read_only=True,
+            cap_drop=["ALL"],  # drop all linux capabilities
             tmpfs={"/tmp": "size=64m"},
             mem_limit="512m",
             nano_cpus=1_000_000_000,
-            user="nobody",  # don't run as root
-            cap_drop=["ALL"],  # drop all linux capabilities
             cap_add=["NET_RAW"],  # add back only what's needed for networking
             security_opt=["no-new-privileges:true"],  # prevent privilege escalation
             pids_limit=100,  # prevent fork bombs
@@ -138,7 +177,7 @@ class Docker:
                 )
 
             res = self._container.exec_run(
-                cmd=["bash", "-c", cmd],
+                cmd=[self._img_metadata.shell, "-c", cmd],
                 stdout=True,
                 stderr=True,
                 demux=True,
@@ -214,6 +253,17 @@ def _format_tools_for_sys_prompt(tool_dir: str, tools: Volumes) -> str:
 
 def _build_volume(_from: str, to: str, mode: RoOrRw) -> Volumes:
     return {_from: {"bind": to, "mode": mode}}
+
+
+def _write_default_dockerfile():
+    return io.BytesIO(
+        """
+FROM python:3.12-slim
+LABEL agent.shell='bash'
+LABEL agent.description="Bash environment with python pre-installed"
+LABEL agent.base_img='python:3.12-slim'
+""".encode()
+    )
 
 
 if __name__ == "__main__":

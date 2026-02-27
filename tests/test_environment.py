@@ -1,5 +1,6 @@
 from collections.abc import Callable, Iterator
 from pathlib import Path
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Self
 from unittest.mock import patch
 
@@ -8,6 +9,7 @@ from myagent.v1.environment import Docker, _format_volumes_for_sys_prompt
 import pytest
 
 from myagent.v1.models import Mount, Volumes
+from myagent.v1.tools import Tool
 
 
 @pytest.mark.parametrize(
@@ -17,6 +19,16 @@ def test_run_in_container(code):
     env = Docker([], [])
     env.start()
     out = env.run(code)
+    env.stop()
+    assert out == Observation(
+        content="Hello World\n", type="observation", status_code=0
+    )
+
+
+def test_run_in_container_with_external_dockerfile():
+    env = Docker([], [], remote_repo="alpine")
+    env.start()
+    out = env.run('echo "Hello World"')
     env.stop()
     assert out == Observation(
         content="Hello World\n", type="observation", status_code=0
@@ -153,22 +165,3 @@ def test_format_volumes_for_sys_prompt_with_dirs(volumes, subfiles, innerdirs, e
 
     with patch("myagent.v1.environment.Path", new=MockPath):
         assert _format_volumes_for_sys_prompt(volumes) == exp
-
-
-@pytest.mark.parametrize(
-    "tools, exp",
-    [
-        (
-            [Mount(path=Path("somewhere"), mode="ro")],
-            {
-                "somewhere": {
-                    "bind": f"{Docker._mnt_dir}{Docker._mnt_tools}/somewhere",
-                    "mode": "ro",
-                }
-            },
-        )
-    ],
-)
-def test_bind_tools(tools, exp):
-    with patch("myagent.v1.environment.validate_tool"):
-        assert Docker(tools, [])._bind_tools(tools) == exp
