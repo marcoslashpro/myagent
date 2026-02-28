@@ -6,6 +6,7 @@ from myagent.v1.agent import Agent, extract_all_blocks
 from myagent.v1.environment import Docker
 from myagent.v1.errors import ModelError, ToolError
 from myagent.v1.messages import ToolCall
+from myagent.v1.models import AllVolumes, ImageMetadata
 from myagent.v1.tools import Tool
 
 import pytest
@@ -98,6 +99,8 @@ def test_run(msgs, exp):
     class MockEnv:
         def __init__(self, *args) -> None:
             self.messages = []
+            self.img_metadata = ImageMetadata(None, None)
+            self.volumes = AllVolumes({}, {}, {})
 
         def start(self):
             pass
@@ -107,9 +110,14 @@ def test_run(msgs, exp):
 
         def run(self, cmd):
             return f"Env:{cmd}"
+        
+        @classmethod
+        def from_config(cls, config):
+            return MockEnv()
 
     with patch("myagent.v1.agent.Docker", new=MockEnv):
         with Agent(LLM(""), cli=False) as agent:
             agent.run("")
 
-        assert agent._env.messages == exp
+        # First one is sys prompt, no need to check that
+        assert agent.messages[1:] == exp

@@ -1,37 +1,28 @@
-from dataclasses import dataclass, field
-from pathlib import Path
-import re
 from typing import Literal
+import re
 
+from myagent.core.messages import Message, SystemMessage
 from myagent.v1.actions import AgentAction
-from myagent.v1.environment import Docker
-from myagent.v1.errors import AgentEnvironmentError, ModelError, ToolError, UserError
+from myagent.v1.environment import Docker, DockerConfiguration
+from myagent.v1.errors import AgentEnvironmentError, UserError
 from myagent.v1.llm import LLM
-from myagent.v1.messages import (
-    AssistantMessage,
-    ToolCall,
-    ToolMessage,
-    UserMessage,
-)
-from myagent.v1.models import DockerSpecs, Mount
-from myagent.v1.tools import Tool
-
-
-@dataclass(slots=True)
-class Context:
-    tools: list[Tool] = field(default_factory=list)
-    mounts: list[Mount] = field(default_factory=list)
+from myagent.v1.messages import AssistantMessage, UserMessage
 
 
 class Agent:
     def __init__(
         self,
         llm: LLM,
-        ctx: Context | None = None,
+        config: DockerConfiguration | None = None,
+        messages: list[Message] | None = None,
         cli: bool = True,
-        docker_specs: DockerSpecs | None = None,
     ):
-        self.ctx = ctx
+        self.config = config if config else DockerConfiguration()
+        self.env = Docker.from_config(self.config)
+        self.system_prompt = self._generate_sys_prompt()
+
+        self.messages = messages or [self._generate_sys_prompt()]
+
         self.llm = llm
         if cli:
             from myagent.core.log_config import AgentLogger
@@ -40,11 +31,16 @@ class Agent:
         else:
             self.logger = None
 
-        self._env = (
-            Docker(ctx.tools, ctx.mounts, specs=docker_specs)
-            if ctx
-            else Docker([], [], specs=docker_specs)
+    def _generate_sys_prompt(self) -> SystemMessage:
+        sys_prompt = self.config.SYS_PROMPT_PATH.read_text()
+        sys_prompt = (
+            sys_prompt.replace("{{IMAGE_METADATA}}", str(self.env.img_metadata))
+            .replace("{{SHELL}}", self.env.img_metadata.shell)
+            .replace("{{FILES}}", self.env.volumes.render_for_sys_prompt())
+            .replace("{{MNT_DIR}}", self.config.mnt_dir)
+            .replace("{{TOOL_DIR}}", self.config.mnt_tools_dir)
         )
+        return SystemMessage(content=sys_prompt)
 
     def log(
         self,
@@ -68,24 +64,24 @@ class Agent:
 
     def __enter__(self):
         print("\n[INFO] - Starting container...")
-        self._env.start()
+        self.env.start()
         return self
 
     def __exit__(self, exc_type, exc, tb):
         print("\n[INFO] - Stopping container...")
-        self._env.stop()
+        self.env.stop()
 
     def run(self, prompt: str):
-        self._env.messages.append(UserMessage(content=prompt))
+        self.messages.append(UserMessage(content=prompt))
         self.log("prompt", prompt)
 
         while True:
-            res = self.llm.run(self._env.messages)
+            res = self.llm.run(self.messages)
 
             output = extract_all_blocks(res.content)
 
             if not output.code and not output.think and not output.final_answer:
-                self._env.messages.append(
+                self.messages.append(
                     UserMessage(
                         content="Invalid response content, make sure to wrap your answer is the specific block that it belongs to"
                     )
@@ -95,14 +91,14 @@ class Agent:
 
             if think := output.think:
                 self.log("think", think)
-                self._env.messages.append(AssistantMessage(content=think))
+                self.messages.append(AssistantMessage(content=think))
 
             if code := output.code:
                 self.log("code", code)
-                self._env.messages.append(AssistantMessage(code))
+                self.messages.append(AssistantMessage(code))
 
                 try:
-                    observation = self._env.run(code)
+                    observation = self.env.run(code)
                 except AgentEnvironmentError as e:
                     raise UserError(
                         "Agent environment not properly initialized, please make sure to "
@@ -111,11 +107,11 @@ class Agent:
 
                 self.log("env", str(observation))
 
-                self._env.messages.append(UserMessage(content=str(observation)))
+                self.messages.append(UserMessage(content=str(observation)))
 
             if final_answer := output.final_answer:
                 self.log("final_answer", final_answer)
-                self._env.messages.append(AssistantMessage(content=final_answer))
+                self.messages.append(AssistantMessage(content=final_answer))
                 return
 
 
@@ -137,3 +133,9 @@ def extract_all_blocks(prompt: str) -> AgentAction:
         results[label] = content
 
     return AgentAction(**results)
+
+
+if __name__ == "__main__":
+    from rich import print, markdown as md
+
+    print(md.Markdown(Agent(None, DockerConfiguration()).messages[0].content))  # type: ignore
