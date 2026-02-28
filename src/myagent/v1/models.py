@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
-
-from docker import DockerClient
 from docker.models.images import Image
 
 from myagent.v1._types import RoOrRw
