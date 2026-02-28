@@ -66,7 +66,8 @@ class AllVolumes:
     def to_docker_volumes(self) -> dict:
         return {**self.docs, **self.agent_tools, **self.user_tools}
 
-    def _format_docs_for_sys_prompt(self, docs: dict, level: int = 0):
+    @staticmethod
+    def _format_docs_for_sys_prompt(docs: Volumes, level: int = 0):
         formatted = ""
         indent = "   " * level
 
@@ -85,7 +86,7 @@ class AllVolumes:
 
                     if subdirs:
                         for subdir in subdirs:
-                            formatted += self._format_docs_for_sys_prompt(
+                            formatted += AllVolumes._format_docs_for_sys_prompt(
                                 {
                                     str(local_p / subdir): {
                                         "mode": mode,
@@ -100,7 +101,8 @@ class AllVolumes:
 
         return formatted
 
-    def _format_tools_for_sys_prompt(self, tools: Volumes) -> str:
+    @staticmethod
+    def _format_tools_for_sys_prompt(tools: Volumes) -> str:
         names = []
         indent = "    "
         for local_tool_path in tools.keys():
