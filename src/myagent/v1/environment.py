@@ -13,9 +13,10 @@ from myagent.v1.errors import (
     AgentEnvironmentError,
     DockerSetupError,
     InvalidDockerFileError,
+    InvalidDockerSpecsError,
     InvalidMountError,
 )
-from myagent.v1.models import ImageMetadata, Mount, Volumes
+from myagent.v1.models import DockerSpecs, ImageMetadata, Mount, Volumes
 from myagent.v1.tools import Tool
 from myagent.v1.types import RoOrRw
 
@@ -36,17 +37,16 @@ class Docker:
         self,
         tools: list[Tool],
         mounts: list[Mount],
-        dockerfile: Path | None = None,
-        remote_repo: str | None = None,
-        messages: list[Message] | None = None,
         client: DockerClient | None = None,
+        specs: DockerSpecs | None = None,
+        messages: list[Message] | None = None,
     ):
-        self.client = client or DockerClient.from_env()
+        self.client = client if client else DockerClient.from_env()
 
         self._tools: Volumes = {**self._bind_tools(tools), **self._bind_builtins()}
         self._volumes: Volumes = self._bind_mounts(self._add_artifacts_to(mounts))
 
-        self._img: Image | str = self._build_img(dockerfile, remote_repo)
+        self._img: Image | str = self._build_img(specs)
         self._img_metadata: ImageMetadata = ImageMetadata.from_img(self._img)
         self._container: Container | None = None
         self.messages: list[Message] = messages or [self._generate_sys_prompt()]
@@ -58,7 +58,7 @@ class Docker:
             volumes.update(
                 _build_volume(
                     str(tool.path),
-                    f"{self._mnt_dir}{self._mnt_tools}/{tool.path.name}",
+                    f"{self}{self._mnt_tools}/{tool.path.name}",
                     tool.mode,
                 )
             )
@@ -121,33 +121,39 @@ class Docker:
         )
         return SystemMessage(content=sys_prompt)
 
-    def _build_img(self, dockerfile: Path | None, pull: str | None) -> Image:
-        if pull and dockerfile:
+    def _build_img(self, specs: DockerSpecs | None) -> Image:
+        if not specs or not specs.local_dockerfile or not specs.remote_repo:
+            return self.client.images.build(
+                fileobj=_write_default_dockerfile(),
+                tag=self._img_tag,
+                forcerm=True,
+            )[0]
+
+        if specs.remote_repo and specs.local_dockerfile:
             raise DockerSetupError(
                 "Cannot create a valid image when provided both "
                 "dockerfile and an image to pull from registry. "
                 "Please provide only one of the two."
             )
 
-        if dockerfile:
-            if not dockerfile.exists():
-                raise InvalidDockerFileError(str(dockerfile))
+        if specs.local_dockerfile:
+            if not specs.local_dockerfile.exists():
+                raise InvalidDockerFileError(str(specs.local_dockerfile))
 
             return self.client.images.build(
-                path=str(dockerfile.parent.resolve()),
-                dockerfile=dockerfile.name,
+                path=str(specs.local_dockerfile.parent.resolve()),
+                dockerfile=specs.local_dockerfile.name,
                 tag=self._img_tag,
                 forcerm=True,
             )[0]
 
-        if pull:
-            return self.client.images.pull(pull)
+        if specs.remote_repo:
+            return self.client.images.pull(specs.remote_repo)
 
-        return self.client.images.build(
-            fileobj=_write_default_dockerfile(),
-            tag=self._img_tag,
-            forcerm=True,
-        )[0]
+        else:
+            raise InvalidDockerSpecsError(
+                f"Invalid specs for docker container: {specs}"
+            )
 
     def start(self):
         self._container = self.client.containers.run(

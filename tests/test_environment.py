@@ -8,7 +8,7 @@ from myagent.v1.actions import Observation
 from myagent.v1.environment import Docker, _format_volumes_for_sys_prompt
 import pytest
 
-from myagent.v1.models import Mount, Volumes
+from myagent.v1.models import DockerSpecs, Mount, Volumes
 from myagent.v1.tools import Tool
 
 
@@ -26,7 +26,7 @@ def test_run_in_container(code):
 
 
 def test_run_in_container_with_external_dockerfile():
-    env = Docker([], [], remote_repo="alpine")
+    env = Docker([], [], specs=DockerSpecs(remote_repo="alpine"))
     env.start()
     out = env.run('echo "Hello World"')
     env.stop()

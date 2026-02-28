@@ -34,7 +34,11 @@ class DockerSetupError(Exception):
     pass
 
 
-class InvalidDockerFileError(UserError, DockerSetupError):
+class InvalidDockerSpecsError(UserError, DockerSetupError):
+    pass
+
+
+class InvalidDockerFileError(InvalidDockerSpecsError):
     def __init__(self, path: str) -> None:
         super().__init__(f"Dockerfile at path: {path} not found")
 

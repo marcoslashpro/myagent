@@ -13,7 +13,7 @@ from myagent.v1.messages import (
     ToolMessage,
     UserMessage,
 )
-from myagent.v1.models import Mount
+from myagent.v1.models import DockerSpecs, Mount
 from myagent.v1.tools import Tool
 
 
@@ -21,12 +21,16 @@ from myagent.v1.tools import Tool
 class Context:
     tools: list[Tool] = field(default_factory=list)
     mounts: list[Mount] = field(default_factory=list)
-    dockerfile: Path | None = field(default=None)
-    remote_repo: str | None = field(default=None)
 
 
 class Agent:
-    def __init__(self, llm: LLM, ctx: Context | None = None, cli: bool = True):
+    def __init__(
+        self,
+        llm: LLM,
+        ctx: Context | None = None,
+        cli: bool = True,
+        docker_specs: DockerSpecs | None = None,
+    ):
         self.ctx = ctx
         self.llm = llm
         if cli:
@@ -37,9 +41,9 @@ class Agent:
             self.logger = None
 
         self._env = (
-            Docker(ctx.tools, ctx.mounts, ctx.dockerfile, ctx.remote_repo)
+            Docker(ctx.tools, ctx.mounts, specs=docker_specs)
             if ctx
-            else Docker([], [])
+            else Docker([], [], specs=docker_specs)
         )
 
     def log(
