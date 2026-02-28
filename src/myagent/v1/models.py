@@ -35,13 +35,6 @@ Description: {self.description if self.description else "NOT PROVIDED"}\n
 """
 
 
-@dataclass(slots=True)
-class DockerSpecs:
-    local_dockerfile: Path | None = field(default=None)
-    remote_repo: str | None = field(default=None)
-    img_tag: str = field(default="agent-env:latest")
-
-
 Volumes = dict[str, dict[Literal["bind", "mode"], str]]
 
 

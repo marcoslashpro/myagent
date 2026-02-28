@@ -3,14 +3,14 @@ from pathlib import Path
 
 from docker import DockerClient
 
-from myagent.v1.environment.config import DockerConfiguration
+from myagent.v1.environment.config import DockerConfiguration, DockerSpecs
 from myagent.v1.errors import (
     DockerSetupError,
     InvalidDockerFileError,
     InvalidDockerSpecsError,
     InvalidMountError,
 )
-from myagent.v1.models import AllVolumes, DockerSpecs, Mount, Volumes
+from myagent.v1.models import AllVolumes, Mount, Volumes
 from myagent.v1.tools import Tool
 from myagent.v1._types import RoOrRw
 

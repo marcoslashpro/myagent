@@ -2,13 +2,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from myagent.v1.errors import DockerConfigurationError
-from myagent.v1.models import DockerSpecs, Mount
+from myagent.v1.models import Mount
 from myagent.v1.tools import Tool
 
 
 _ROOT_DIR_NAME = "~/.myagent"
 _LOCAL_AGENT_TOOLS_DIR = "tools"
 _SYS_PROMPT_PATH = Path(__file__).parent.parent.parent / "prompts/docker_agent_sys.txt"
+
+
+@dataclass(slots=True)
+class DockerSpecs:
+    local_dockerfile: Path | None = field(default=None)
+    remote_repo: str | None = field(default=None)
+    img_tag: str = field(default="agent-env:latest")
 
 
 @dataclass(slots=True)
