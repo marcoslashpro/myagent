@@ -6,7 +6,7 @@ from typing import Callable
 from warnings import warn
 
 from myagent.v1.errors import InvalidToolMountError
-from myagent.v1.types import Ro, Rw
+from myagent.v1._types import Ro, Rw
 
 
 @dataclass(slots=True)

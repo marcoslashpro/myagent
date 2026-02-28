@@ -5,7 +5,7 @@ from typing import Literal
 from docker import DockerClient
 from docker.models.images import Image
 
-from myagent.v1.types import RoOrRw
+from myagent.v1._types import RoOrRw
 
 
 @dataclass(slots=True)
