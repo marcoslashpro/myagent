@@ -19,6 +19,7 @@ class BaseTool[ModeT]:
             raise InvalidToolMountError(
                 msg=(
                     "The provided tool is not a directory.\n"
+                    "Please provide a tool directory like this:\n"
                     f"{TOOL_FORMATTING_INSTRUCTIONS}"
                 )
             )
@@ -37,6 +38,7 @@ class BaseTool[ModeT]:
             raise InvalidToolMountError(
                 msg=(
                     "Missing execution file in the tool directory.\n"
+                    "Please provide a tool directory like this:\n"
                     f"{TOOL_FORMATTING_INSTRUCTIONS}"
                 )
             )
@@ -55,7 +57,6 @@ class UserTool(BaseTool[Ro]):
 
 
 TOOL_FORMATTING_INSTRUCTIONS = (
-    "Please provide a tool directory like this:\n"
     "tool_name/\n"
     "   |-README.md  # instructions for the agent on how to use the tool\n"
     "   |-launch.sh  # bash script to use the tool, can take any n. of args\n"
