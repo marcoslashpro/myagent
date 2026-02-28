@@ -1,16 +1,14 @@
 from pathlib import Path
 
-from myagent.v1.models import Mount
 from ollama import chat
 
 from prompt_toolkit import PromptSession
-from prompt_toolkit.patch_stdout import patch_stdout
-
 from rich.console import Console
-from rich.markdown import Markdown
 
-from myagent.v1.errors import ModelError, ModelResponseError
-from myagent.v1.agent import Agent, Context
+from myagent.v1.errors import ModelResponseError
+from myagent.v1.agent import Agent
+from myagent.v1.models import Mount
+from myagent.v1.environment.config import DockerSpecs, DockerConfiguration
 from myagent.core.messages import (
     Message,
     AssistantMessage,
@@ -41,9 +39,11 @@ class OllamaLLM:
 
 if __name__ == "__main__":
     model_name = "ministral-3:8b"
-    ctx = Context(
+    ctx = DockerConfiguration(
         mounts=[Mount(Path("~/.artifacts"), mode="rw")],
-        remote_repo="ghcr.io/astral-sh/uv:python3.14-alpine",
+        specs=DockerSpecs(
+            remote_repo="ghcr.io/astral-sh/uv:python3.14-alpine",
+        ),
     )
 
     session = PromptSession()
