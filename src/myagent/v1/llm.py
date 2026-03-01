@@ -1,7 +1,6 @@
 from typing import Protocol
 
 from myagent.core.messages import AssistantMessage, Message
-from myagent.v1.tools import Tool
 
 
 class LLM(Protocol):
