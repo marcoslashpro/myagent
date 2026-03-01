@@ -87,10 +87,6 @@ def build_img(client: DockerClient, specs: DockerSpecs | None) -> Image:
         raise InvalidDockerSpecsError(f"Invalid specs for docker container: {specs}")
 
 
-def _build_volume(_from: str, to: str, mode: RoOrRw) -> Volumes:
-    return {_from: {"bind": to, "mode": mode}}
-
-
 def _build_default_dockerfile():
     return io.BytesIO(
         """
