@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from myagent.v1.errors import DockerConfigurationError
+from myagent.v1.errors import DockerConfigError
 from myagent.v1.models import Mount
 from myagent.v1.tools import Tool
 
@@ -19,7 +19,7 @@ class DockerSpecs:
 
 
 @dataclass(slots=True)
-class DockerConfiguration:
+class DockerConfig:
     specs: DockerSpecs | None = field(default=None)
     mnt_dir: str = field(default="/mnt")
     mnt_tools_dir: str = field(default="/mnt/tools")
@@ -45,7 +45,7 @@ class DockerConfiguration:
     @property
     def SYS_PROMPT_PATH(self) -> Path:
         if not (_sys_prompt_path := Path(_SYS_PROMPT_PATH)).exists():
-            raise DockerConfigurationError(
+            raise DockerConfigError(
                 f"[FATAL ERROR] - Unable to locate system prompt at path: {_sys_prompt_path}, "
                 "please inform the library maintainers."
             )

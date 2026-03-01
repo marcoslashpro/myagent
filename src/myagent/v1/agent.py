@@ -3,7 +3,7 @@ import re
 
 from myagent.core.messages import Message, SystemMessage
 from myagent.v1.actions import AgentAction
-from myagent.v1.environment import Docker, DockerConfiguration
+from myagent.v1.environment import Docker, DockerConfig
 from myagent.v1.errors import AgentEnvironmentError, UserError
 from myagent.v1.llm import LLM
 from myagent.v1.messages import AssistantMessage, UserMessage
@@ -13,11 +13,11 @@ class Agent:
     def __init__(
         self,
         llm: LLM,
-        config: DockerConfiguration | None = None,
+        config: DockerConfig | None = None,
         messages: list[Message] | None = None,
         cli: bool = True,
     ):
-        self.config = config if config else DockerConfiguration()
+        self.config = config if config else DockerConfig()
         self.env = Docker.from_config(self.config)
         self.system_prompt = self._generate_sys_prompt()
 
@@ -138,4 +138,4 @@ def extract_all_blocks(prompt: str) -> AgentAction:
 if __name__ == "__main__":
     from rich import print, markdown as md
 
-    print(md.Markdown(Agent(None, DockerConfiguration()).messages[0].content))  # type: ignore
+    print(md.Markdown(Agent(None, DockerConfig()).messages[0].content))  # type: ignore

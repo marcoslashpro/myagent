@@ -3,7 +3,7 @@ from pathlib import Path
 
 from docker import DockerClient
 
-from myagent.v1.environment.config import DockerConfiguration, DockerSpecs
+from myagent.v1.environment.config import DockerConfig, DockerSpecs
 from myagent.v1.errors import (
     DockerSetupError,
     InvalidDockerFileError,
@@ -17,7 +17,7 @@ from myagent.v1._types import RoOrRw
 from docker.models.images import Image
 
 
-def build_volumes(config: DockerConfiguration) -> AllVolumes:
+def build_volumes(config: DockerConfig) -> AllVolumes:
     return AllVolumes(
         user_tools=build_tools_volumes(config.tools, config.mnt_tools_dir),
         agent_tools=build_agent_tools_volumes(

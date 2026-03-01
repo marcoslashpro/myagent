@@ -4,7 +4,7 @@ from docker.models.containers import Container
 from docker.models.images import Image
 
 from myagent.v1.actions import Observation
-from myagent.v1.environment.config import DockerConfiguration
+from myagent.v1.environment.config import DockerConfig
 from myagent.v1.errors import AgentEnvironmentError
 from myagent.v1.models import AllVolumes, ImageMetadata
 
@@ -26,7 +26,7 @@ class Docker:
         self.container: Container | None = None
 
     @classmethod
-    def from_config(cls, config: DockerConfiguration) -> "Docker":
+    def from_config(cls, config: DockerConfig) -> "Docker":
         client = DockerClient.from_env()
         volumes = builder.build_volumes(config)
         img = builder.build_img(client, config.specs)

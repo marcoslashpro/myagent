@@ -8,7 +8,7 @@ from rich.console import Console
 from myagent.v1.errors import ModelResponseError
 from myagent.v1.agent import Agent
 from myagent.v1.models import Mount
-from myagent.v1.environment.config import DockerSpecs, DockerConfiguration
+from myagent.v1.environment.config import DockerSpecs, DockerConfig
 from myagent.core.messages import (
     Message,
     AssistantMessage,
@@ -39,7 +39,7 @@ class OllamaLLM:
 
 if __name__ == "__main__":
     model_name = "ministral-3:8b"
-    ctx = DockerConfiguration(
+    ctx = DockerConfig(
         mounts=[Mount(Path("~/.artifacts"), mode="rw")],
         specs=DockerSpecs(
             remote_repo="ghcr.io/astral-sh/uv:python3.14-alpine",

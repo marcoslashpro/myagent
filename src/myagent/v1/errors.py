@@ -38,7 +38,7 @@ class InvalidDockerSpecsError(UserError, DockerSetupError):
     pass
 
 
-class DockerConfigurationError(DockerSetupError):
+class DockerConfigError(DockerSetupError):
     pass
 
 
