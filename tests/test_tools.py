@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from myagent.v1.errors import InvalidToolMountError
-from myagent.v1.tools import AgentTool, UserTool
+from myagent.v1.environment._mounts import AgentTool, UserTool
 
 import pytest
 
