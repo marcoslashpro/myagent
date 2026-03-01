@@ -9,7 +9,6 @@ from myagent.v1.environment._config import DockerConfig, DockerSpecs
 from myagent.v1.environment._models import AllVolumes, ImageMetadata
 from myagent.v1.environment._mounts import Mount
 from myagent.v1.errors import AgentEnvironmentError
-from myagent.v1.models import AllVolumes, ImageMetadata
 
 import myagent.v1.environment._builder as builder
 
@@ -88,3 +87,9 @@ class Docker:
         if self._container:
             self._container.stop()
             self._container.remove()
+
+    def to_sys_prompt_info(self):
+        return _formatter.format_env(self)
+
+
+__all__ = ["Docker", "DockerConfig", "Mount", "DockerSpecs"]

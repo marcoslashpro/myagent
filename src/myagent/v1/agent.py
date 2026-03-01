@@ -32,12 +32,8 @@ class Agent:
 
     def _generate_sys_prompt(self) -> SystemMessage:
         sys_prompt = self.config.SYS_PROMPT_PATH.read_text()
-        sys_prompt = (
-            sys_prompt.replace("{{IMAGE_METADATA}}", str(self.env.img_metadata))
-            .replace("{{SHELL}}", self.env.img_metadata.shell)
-            .replace("{{FILES}}", self.env.volumes.render_for_sys_prompt())
-            .replace("{{MNT_DIR}}", self.config.mnt_dir)
-            .replace("{{TOOL_DIR}}", self.config.mnt_tools_dir)
+        sys_prompt = sys_prompt.replace(
+            "{{ENV_INFO}}", self.env.to_sys_prompt_info()
         )
         return SystemMessage(content=sys_prompt)
 
