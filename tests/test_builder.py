@@ -27,5 +27,5 @@ from myagent.v1.environment._builder import build_mnt_volumes
     ],
 )
 def test_bind_mnts(mnt_dir, mnts: list[Mount], exp: dict):
-    with patch("myagent.v1.environment.Path.exists", return_value=True):
+    with patch("myagent.v1.environment._builder.Path.exists", return_value=True):
         assert build_mnt_volumes(mnt_dir=mnt_dir, mounts=mnts) == exp
