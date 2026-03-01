@@ -10,9 +10,8 @@ from myagent.v1.errors import (
     InvalidDockerSpecsError,
     InvalidMountError,
 )
-from myagent.v1.models import AllVolumes, Mount, Volumes
-from myagent.v1.tools import Tool
-from myagent.v1._types import RoOrRw
+from myagent.v1.environment._models import AllVolumes, Volumes, RoOrRw
+from myagent.v1.environment._mounts import UserTool, AgentTool, Mount
 
 from docker.models.images import Image
 

@@ -1,13 +1,10 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from myagent.core.messages import AssistantMessage, UserMessage
 from myagent.v1.actions import AgentAction
 from myagent.v1.agent import Agent, extract_all_blocks
-from myagent.v1.environment import Docker
-from myagent.v1.errors import ModelError, ToolError
-from myagent.v1.messages import ToolCall
-from myagent.v1.models import AllVolumes, ImageMetadata
-from myagent.v1.tools import Tool
+from myagent.v1.environment._models import AllVolumes, ImageMetadata
+from myagent.v1.environment._mounts import Tool
 
 import pytest
 
@@ -110,10 +107,13 @@ def test_run(msgs, exp):
 
         def run(self, cmd):
             return f"Env:{cmd}"
-        
+
         @classmethod
         def from_config(cls, config):
             return MockEnv()
+        
+        def to_sys_prompt_info(self):
+            return ""
 
     with patch("myagent.v1.agent.Docker", new=MockEnv):
         with Agent(LLM(""), cli=False) as agent:
