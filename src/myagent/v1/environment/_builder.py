@@ -3,7 +3,7 @@ from pathlib import Path
 
 from docker import DockerClient
 
-from myagent.v1.environment.config import DockerConfig, DockerSpecs
+from myagent.v1.environment._config import DockerConfig, DockerSpecs
 from myagent.v1.errors import (
     DockerSetupError,
     InvalidDockerFileError,

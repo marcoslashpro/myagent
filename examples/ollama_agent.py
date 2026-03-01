@@ -7,8 +7,7 @@ from rich.console import Console
 
 from myagent.v1.errors import ModelResponseError
 from myagent.v1.agent import Agent
-from myagent.v1.models import Mount
-from myagent.v1.environment.config import DockerSpecs, DockerConfig
+from myagent.v1.environment import Mount, DockerSpecs, DockerConfig
 from myagent.core.messages import (
     Message,
     AssistantMessage,

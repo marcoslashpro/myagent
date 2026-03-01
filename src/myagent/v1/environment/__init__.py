@@ -4,7 +4,10 @@ from docker.models.containers import Container
 from docker.models.images import Image
 
 from myagent.v1.actions import Observation
-from myagent.v1.environment.config import DockerConfig
+from myagent.v1.environment import _formatter
+from myagent.v1.environment._config import DockerConfig, DockerSpecs
+from myagent.v1.environment._models import AllVolumes, ImageMetadata
+from myagent.v1.environment._mounts import Mount
 from myagent.v1.errors import AgentEnvironmentError
 from myagent.v1.models import AllVolumes, ImageMetadata
 

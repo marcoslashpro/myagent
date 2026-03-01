@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from myagent.v1.errors import DockerConfigError
-from myagent.v1.models import Mount
-from myagent.v1.tools import Tool
+from myagent.v1.environment._mounts import Tool, Mount, UserTool
 
 
 _ROOT_DIR_NAME = "~/.myagent"
@@ -23,7 +22,7 @@ class DockerConfig:
     specs: DockerSpecs | None = field(default=None)
     mnt_dir: str = field(default="/mnt")
     mnt_tools_dir: str = field(default="/mnt/tools")
-    tools: list[Tool] = field(default_factory=list)
+    tools: list[UserTool] = field(default_factory=list)
     mounts: list[Mount] = field(default_factory=list)
 
     @property
