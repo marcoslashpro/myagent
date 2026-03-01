@@ -19,7 +19,6 @@ class Agent:
     ):
         self.config = config if config else DockerConfig()
         self.env = Docker.from_config(self.config)
-        self.system_prompt = self._generate_sys_prompt()
 
         self.messages = messages or [self._generate_sys_prompt()]
 
