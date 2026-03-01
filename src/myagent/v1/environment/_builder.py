@@ -8,7 +8,6 @@ from myagent.v1.errors import (
     DockerSetupError,
     InvalidDockerFileError,
     InvalidDockerSpecsError,
-    InvalidMountError,
 )
 from myagent.v1.environment._models import AllVolumes, Volumes, RoOrRw
 from myagent.v1.environment._mounts import UserTool, AgentTool, Mount
@@ -26,18 +25,11 @@ def build_volumes(config: DockerConfig) -> AllVolumes:
     )
 
 
-def build_tools_volumes(tools: list[Tool], mnt_tools_dir: str) -> Volumes:
+def build_tools_volumes(tools: list[UserTool], mnt_tools_dir: str) -> Volumes:
     volumes: Volumes = {}
 
     for tool in tools:
-        volumes.update(
-            _build_volume(
-                str(tool.path),
-                f"{mnt_tools_dir}/{tool.path.name}",
-                tool.mode,
-            )
-        )
-
+        volumes.update(tool.to_volumes(mnt_tools_dir))
     return volumes
 
 
@@ -48,13 +40,7 @@ def build_agent_tools_volumes(
     volumes: Volumes = {}
 
     for agent_tool in local_agent_tools_dir.iterdir():
-        volumes.update(
-            _build_volume(
-                str(agent_tool),
-                f"{mnt_tools_dir}/{agent_tool.name}",
-                "rw",
-            )
-        )
+        volumes.update(AgentTool(agent_tool).to_volumes(mnt_tools_dir))
     return volumes
 
 
@@ -62,15 +48,7 @@ def build_mnt_volumes(mnt_dir: str, mounts: list[Mount]) -> Volumes:
     volumes: Volumes = {}
 
     for mount in mounts:
-        if not mount.path.expanduser().exists():
-            raise InvalidMountError(path=str(mount.path))
-        volumes.update(
-            _build_volume(
-                str(mount.path.expanduser()),
-                f"{mnt_dir}/{mount.path.name}",
-                mount.mode,
-            )
-        )
+        volumes.update(mount.to_volumes(mnt_dir))
     return volumes
 
 
